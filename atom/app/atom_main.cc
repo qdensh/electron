@@ -77,6 +77,51 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, wchar_t* cmd, int) {
     _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
 
     _set_error_mode(_OUT_TO_STDERR);
+
+    _CrtSetReportHook(
+      [](int report_type, char* message, int* return_value) -> int {
+        /*TCHAR path[MAX_PATH];
+        if (GetModuleFileName(NULL, path, _countof(path))) {
+          auto p = wcsrchr(path, '\\');
+          if (p) {
+            *p = 0;
+            TCHAR cmdline[512];
+            swprintf_s(cmdline, L"procdump.exe -accepteula %d electron.dmp",
+                       GetCurrentProcessId());
+            STARTUPINFO si = { sizeof(si) };
+            PROCESS_INFORMATION pi = {};
+            if (CreateProcess(std::wstring(path).append(1, '\\')
+                                .append(L"procdump.exe").c_str(),
+                              cmdline, nullptr, nullptr,
+                              FALSE, 0, nullptr, path, &si, &pi)) {
+                WaitForSingleObject(pi.hProcess, 30000);
+                CloseHandle(pi.hThread);
+                CloseHandle(pi.hProcess);
+            }
+          }
+        }*/
+        return 0;
+    });
+
+    TCHAR path[MAX_PATH];
+    if (GetModuleFileName(NULL, path, _countof(path))) {
+      auto p = wcsrchr(path, '\\');
+      if (p) {
+        *p = 0;
+        TCHAR cmdline[512];
+        swprintf_s(cmdline, L"procdump.exe -accepteula -t %d electron.dmp",
+                   GetCurrentProcessId());
+        STARTUPINFO si = { sizeof(si) };
+        PROCESS_INFORMATION pi = {};
+        if (CreateProcess(std::wstring(path).append(1, '\\')
+                            .append(L"procdump.exe").c_str(),
+                          cmdline, nullptr, nullptr,
+                          FALSE, 0, nullptr, path, &si, &pi)) {
+            CloseHandle(pi.hThread);
+            CloseHandle(pi.hProcess);
+        }
+      }
+    }
   }
 #endif
 
