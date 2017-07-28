@@ -14,18 +14,6 @@
 
 namespace atom {
 
-namespace {
-
-void CopyPixelsToBuffer(const SkBitmap& bitmap,
-                        const v8::Local<v8::Object>& buffer) {
-  size_t rgb_arr_size = bitmap.width() * bitmap.height() *
-      bitmap.bytesPerPixel();
-
-  memcpy(node::Buffer::Data(buffer), bitmap.getPixels(), rgb_arr_size);
-}
-
-}  // namespace
-
 namespace api {
 
 FrameSubscriber::FrameSubscriber(v8::Isolate* isolate,
@@ -90,18 +78,25 @@ void FrameSubscriber::OnFrameDelivered(const FrameCaptureCallback& callback,
   v8::Locker locker(isolate_);
   v8::HandleScope handle_scope(isolate_);
 
-  size_t rgb_arr_size = bitmap.width() * bitmap.height() *
-    bitmap.bytesPerPixel();
+  size_t rgb_arr_size = bitmap.getSize();
+  if (rgb_arr_size == 0)
+    return;
+
   v8::MaybeLocal<v8::Object> buffer = node::Buffer::New(isolate_, rgb_arr_size);
   if (buffer.IsEmpty())
     return;
 
-  CopyPixelsToBuffer(bitmap, buffer.ToLocalChecked());
+  auto local_buffer = buffer.ToLocalChecked();
+
+  {
+    SkAutoLockPixels lock(bitmap);
+    memcpy(node::Buffer::Data(local_buffer), bitmap.getPixels(), rgb_arr_size);
+  }
 
   v8::Local<v8::Value> damage =
       mate::Converter<gfx::Rect>::ToV8(isolate_, damage_rect);
 
-  callback_.Run(buffer.ToLocalChecked(), damage);
+  callback_.Run(local_buffer, damage);
 }
 
 }  // namespace api
